@@ -36,9 +36,9 @@ wavetable = []
 
 for i in range(wavetable_length):
   wave_index = float(i)/wavetable_length
-  wave_value = math.sin(wave_index * math.pi * 1.0)
+  wave_value = math.sin(wave_index * math.pi)
   bitpattern = wave_value * (2**len(resistors) - 1)
-  bitpattern = int(bitpattern)
+  bitpattern = int(round(bitpattern))
   
   wavetable.append((i,bitpattern))
 
