@@ -1,23 +1,24 @@
 #include <avr/io.h>
 .section .text
 
-.global dds_save_ports
-dds_save_ports:
-  
-  in r21, 0x18
-  in r22, 0x1b
-  ret
-
 .global dds_isr
 dds_isr:
-  push r24
+  in r21, 0x18
+  
+  rcall dds_zero_output
+
+  push r24 ; save r24 since it is used here
   
   ldi r24, 1
   and r24, r21
   cpi r24, 1
-  breq skip_cycle
+  breq skip_cycle  
   pop r24
-  rjmp cycle_dds_change  
+  rcall cycle_dds_change  
+  push r24
+  ldi r24, 1 ; 1 blink
+  rjmp end_dds_isr
+
   skip_cycle:
 
   ldi r24, 2
@@ -25,7 +26,11 @@ dds_isr:
   cpi r24, 2
   breq skip_incr
   pop r24
-  rjmp dds_increment
+  rcall dds_increment
+  push r24
+  ldi r24, 2 ; 2 blinks
+  rjmp end_dds_isr
+
   skip_incr:
 
   ldi r24, 4
@@ -33,33 +38,46 @@ dds_isr:
   cpi r24, 4
   breq skip_decr
   pop r24
-  rjmp dds_decrement
+  rcall dds_decrement
+  push r24
+  ldi r24, 3 ; 3 blinks 
+  rjmp end_dds_isr
+
   skip_decr:
+  ; Nothing ran for whatever reason
+  ldi r24, 4 ; 4 blinks
+  ; r24 still on the stack
 
+  end_dds_isr:
+  ; Save registers, r24 is already on the stack
+  push r23
+  push r25
+  push r26
+  push r27
+  push r28
+  push r29
+  push r30
+  push r31
+
+  ; r24 is first and only arg to this C function, already set
+  rcall blink_led
+  
+  ; Restore registers
+  pop r31
+  pop r30
+  pop r29
+  pop r28
+  pop r27
+  pop r26
+  pop r25
+  pop r23
   pop r24
-  sei
-  reti
-
-.global dds_loop
-
-dds_loop:
-  ldi r31, hi8(sine)
-  ldi r30, lo8(sine)
-  
-  ldi r28, 0x0
-  ldi r29, 0x0
-  
-  ldi r24, 0x9c
-  ldi r25, 0x3f
-  ldi r26, 0x06
-  
-  ldi r23, 0x00
-  rjmp dds
+  ret
 
 .global dds_zero_output
 dds_zero_output:
   push r24
-  ldi r24, 0x0
+  ldi r24, 0x60
   out 0x1b, r24
   pop r24
   ret
@@ -74,18 +92,15 @@ cycle_dds_change:
   pop r24
   cpi r23, 3
   brsh clear_dds_change
-  sei
-  reti
+  ret
 
 clear_dds_change:
   ldi r23, 0x00
-  sei
-  reti
+  ret
 
 .global dds_increment
 
 dds_increment:
-
   cpi r23, 0
   brne skip_call_0
   rcall dds_increment_0
@@ -102,8 +117,7 @@ dds_increment:
 
   skip_call_2:
 
-  sei
-  reti
+  ret
 
 dds_increment_0:
   cpi r24, 0xff
@@ -130,11 +144,9 @@ dds_increment_2:
 immediate_return:
   ret
 
-
 .global dds_decrement
 
 dds_decrement:
-
   cpi r23, 0
   brne skip_call_decr_0
   rcall dds_decrement_0
@@ -150,8 +162,7 @@ dds_decrement:
   rcall dds_decrement_2
   skip_call_decr_2:
 
-  sei
-  reti
+  ret
 
 dds_decrement_0:
   cpi r24, 1
@@ -175,6 +186,22 @@ dds_decrement_2:
   sbiw r26, 1
   ret
 
+.global dds_loop
+dds_loop:
+  ldi r31, hi8(sine)
+  ldi r30, lo8(sine)  
+
+  ldi r29, 0x0
+  ldi r28, 0x0
+  
+  ldi r24, 0x9c
+  ldi r25, 0x3f
+  ldi r26, 0x06
+  
+  ldi r23, 0x00
+
+  sei
+  rjmp dds
 
 dds:
   add             r28,r24                 ; 1
