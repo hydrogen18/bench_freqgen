@@ -1,0 +1,19 @@
+#!/bin/bash
+
+set -xe
+
+python make_wavetable.py
+
+CHIP='attiny84'
+PROGRAM=main
+
+rm -f "${PROGRAM}.hex"
+rm -f "${PROGRAM}.elf"
+
+avr-gcc -Os "-mmcu=${CHIP}" -c -o "${PROGRAM}.o" "${PROGRAM}.c"
+avr-gcc -c -mmcu=${CHIP}  wavetable.S -o wavetable.o
+avr-gcc -c -mmcu=${CHIP}  dds.S -o dds.o
+# Force the wave section start at 0x300, a 256 byte boundary
+avr-gcc -Wl,--section-start=".wave=0x300" "-mmcu=${CHIP}" "dds.o" "wavetable.o" "${PROGRAM}.o" -o "${PROGRAM}.elf"
+avr-objcopy -j .wave -j .data -j .text -O ihex -R .eeprom "${PROGRAM}.elf" "${PROGRAM}.hex"
+avrdude -p "${CHIP}" -c usbtiny -U "flash:w:${PROGRAM}.hex"
