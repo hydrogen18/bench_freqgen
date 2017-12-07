@@ -14,7 +14,7 @@ dds_isr:
   
   ldi r24, 1
   and r24, r21
-  cpi r24, 0
+  cpi r24, 1
   breq skip_cycle
   pop r24
   rjmp cycle_dds_change  
@@ -22,7 +22,7 @@ dds_isr:
 
   ldi r24, 2
   and r24, r21
-  cpi r24, 0
+  cpi r24, 2
   breq skip_incr
   pop r24
   rjmp dds_increment
@@ -30,13 +30,14 @@ dds_isr:
 
   ldi r24, 4
   and r24, r21
-  cpi r24, 0
+  cpi r24, 4
   breq skip_decr
   pop r24
   rjmp dds_decrement
   skip_decr:
 
   pop r24
+  sei
   reti
 
 .global dds_loop
@@ -48,9 +49,9 @@ dds_loop:
   ldi r28, 0x0
   ldi r29, 0x0
   
-  ldi r24, 0xff
-  ldi r25, 0x0f
-  ldi r26, 0x00
+  ldi r24, 0x9c
+  ldi r25, 0x3f
+  ldi r26, 0x06
   
   ldi r23, 0x00
   rjmp dds
@@ -78,6 +79,7 @@ cycle_dds_change:
 
 clear_dds_change:
   ldi r23, 0x00
+  sei
   reti
 
 .global dds_increment

@@ -38,6 +38,7 @@ main (void)
     // DDA7 is input
 
     DDRB = 0x0; //All of DDRB is input
+    PORTB = 0xff; //Enable pull up on all pins
 
     // The following pins trigger interrupts
     //PCINT10
